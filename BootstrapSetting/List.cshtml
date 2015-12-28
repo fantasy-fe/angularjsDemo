@@ -1,0 +1,119 @@
+﻿@using OpenSharp.Resources.Admin
+
+@{
+    ViewBag.Title = BootstrapTheme.BootstrapThemeTitle;
+}
+<script>
+    window.storefrontUrl = '@ViewData["storefrontUrl"]';
+</script>
+<div class="row">
+    <div class="col-md-12 text-right">
+        <a style="float:right; margin:10px;" class="btn btn-primary eicon-list-add" href="/BootstrapSetting/Index/"></a>
+    </div>
+</div>
+
+@(Html.Kendo().Grid<OpenSharp.AppService.ViewModel.Commerce.BootstrapThemeViewModel>()
+.Name("themegrid")
+.Columns(cl =>
+        {
+            cl.Bound(p => p.Name).Title(BootstrapTheme.BootstrapThemeName).HeaderHtmlAttributes(new { style = "text-align:center;" }).HtmlAttributes(new { style = "text-align:center;" });
+            cl.Bound(p => p.Description).Title(BootstrapTheme.BootstrapThemeDesc).HeaderHtmlAttributes(new { style = "text-align:center;" }).HtmlAttributes(new { style = "text-align:center;" }).Width("100");
+            cl.Bound(p => p.Content).Title(BootstrapTheme.BootstrapThemeContent).Width("150").HeaderHtmlAttributes(new { style = "text-align:center;" }).HtmlAttributes(new { style = "text-align:center;" }).Sortable(true);
+            cl.Bound(p => p.IsApplied).Title(BootstrapTheme.BootstrapThemeIsApplied).Width("150").HeaderHtmlAttributes(new { style = "text-align:center;" }).HtmlAttributes(new { style = "text-align:center;" }).Sortable(true);
+            cl.Bound(p => p.Id).ClientTemplate("#=radioTemplate(Id,IsApplied)#").Title("Apply").Width(50);
+            cl.Bound(p => p.Id)
+                  .ClientTemplate(
+                                "<a title='" + BootstrapTheme.BootstrapThemeEditTitle + "'class='btn btn-info' href='" + Url.Action("Index", "BootstrapSetting", new { Id = "#= Id #" }) + "' ><span class='glyphicon glyphicon-edit'></span></a> <div class='clearfix' style='height:2px;'></div>" +
+                                "<a title='" + BootstrapTheme.BootstrapThemeDownloadTitle + "'class='btn btn-info' href='" + Url.Action("DownloadTheme", "BootstrapSetting", new { Id = "#= Id #" }) + "' ><span class='glyphicon glyphicon-download'></span></a> <div class='clearfix' style='height:2px;'></div>")
+                                       .Title(BootstrapTheme.BootstrapThemeTitleActions).Width("10%")
+                                       .HeaderHtmlAttributes(new { style = "text-align:center;" })
+                                       .HtmlAttributes(new { style = "text-align:center;" })
+                                       .Filterable(false).Sortable(false).IncludeInMenu(false);
+
+        })
+
+
+        .Pageable(pageable => pageable.ButtonCount(5))
+        .Sortable()
+        .Filterable()
+        .ColumnMenu()
+        .Scrollable(src => src.Height("auto").Enabled(false))
+        //.HtmlAttributes(new { style = "height:670px;" })
+        .DataSource(dataSource => dataSource
+                    .Ajax()
+                    .PageSize(10)
+                    .Model(model => model.Id(p => p.Id))
+                    .Read(read => read.Action("Themes_Read", "BootstrapSetting"))
+            )
+)
+<div class="row" style="height:200px;">
+    <div class="col-md-12 text-right">
+        <span id="spMsg" style="color:#000;font-size:14px; display:none;">Theme setting suceess!</span>
+    </div>
+</div>
+
+<script>
+    function radioTemplate(id, applied) {
+        var temp;
+        if (applied) {
+            temp = "<input type='radio' name='pagesetting' id='theme" + id + "' checked  class='radio' onclick='return changeTheme($(this).val());' value=" + id + " />";
+        } else {
+            temp = "<input type='radio' name='pagesetting' id='theme" + id + "' class='radio' onclick='return changeTheme($(this).val());' value=" + id + " />";
+        }
+
+        return temp;
+    }
+
+    function changeTheme(id) {
+        $.msgbox.confirm(culture.page.PageConfirmation, culture.page.PageManagementTitle,
+            function () {
+                dochangeTheme(id);
+                return true;
+            }, function () {
+                $("#themegrid").data('kendoGrid').dataSource.read();
+                $("#themegrid").data('kendoGrid').refresh();
+                return false;
+            }
+         );
+    }
+    function dochangeTheme(id) {
+        var storefrontUrl
+        if (typeof window.storefrontUrl === 'undefined') {
+            return;
+        } else {
+            var lastStr = window.storefrontUrl.substr(window.storefrontUrl.length - 2, 1);
+            if (lastStr == "/") {
+                storefrontUrl = window.storefrontUrl + "FETools/UpdateBootstrapStyle/";
+            } else {
+                storefrontUrl = window.storefrontUrl + "/FETools/UpdateBootstrapStyle/";
+            }
+        }
+
+        storefrontUrl += "?id=" + id + "&callback=_callback";
+
+        $.ajax({
+            url: '/BootstrapSetting/SettingThemeById/' + id,
+            type: 'GET',
+            dataType: "json",
+            success: function (data) {
+                if (data.ret) {
+                    $.getJSON(storefrontUrl, function (data) {
+                        if (console) console.info(data);
+                        alert(data.msg);
+                        $("#spMsg").show();
+                    });
+                    sync_handler();
+                } else {
+                    if (console) console.info(data);
+                    alert(data.msg);
+                }
+
+            }
+        })
+    }
+
+    function sync_handler(e) {
+        $("#themegrid").data('kendoGrid').dataSource.read();
+        $("#themegrid").data('kendoGrid').refresh();
+    }
+</script>
